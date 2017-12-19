@@ -6,6 +6,12 @@ module Debugger
         require 'ostruct'
 
         host = ENV['DEBUGGER_HOST']
+        child_process_ports = if ENV['DEBUGGER_CHILD_PROCESS_PORTS']
+                                ENV['DEBUGGER_CHILD_PROCESS_PORTS'].split(/-/)
+                              else
+                                nil
+                              end
+        port = find_free_port(host, child_process_ports)
 
         options ||= OpenStruct.new(
             'frame_bind'  => false,
@@ -24,10 +30,10 @@ module Debugger
         )
 
         if(options.ignore_port)
-          options.port = find_free_port(options.host)
+          options.port = find_free_port(options.host, , child_process_ports)
           options.notify_dispatcher = true
         end
-      
+
         start_debugger(options)
       end
 
@@ -57,10 +63,26 @@ module Debugger
 
 
       def find_free_port(host)
-        server = TCPServer.open(host, 0)
-        port   = server.addr[1]
-        server.close
-        port
+        if child_process_ports.nil?
+          server = TCPServer.open(host, 0)
+          port   = server.addr[1]
+          server.close
+          port
+        else
+          ports = Range.new(child_process_ports[0], child_process_ports[1]).to_a
+          begin
+            raise "Could not find open port in range #{child_process_ports[0]} to #{child_process_ports[1]}" if ports.empty?
+
+            port = ports.sample
+            server = TCPServer.open(host, port)
+            server.close
+            port
+          rescue Errno::EADDRINUSE
+            ports.delete(port)
+            retry
+          end
+        end
+
       end
     end
   end
