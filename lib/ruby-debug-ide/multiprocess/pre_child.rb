@@ -17,7 +17,7 @@ module Debugger
             'frame_bind'  => false,
             'host'        => host,
             'load_mode'   => false,
-            'port'        => find_free_port(host),
+            'port'        => port,
             'stop'        => false,
             'tracing'     => false,
             'int_handler' => true,
@@ -30,7 +30,7 @@ module Debugger
         )
 
         if(options.ignore_port)
-          options.port = find_free_port(options.host, , child_process_ports)
+          options.port = find_free_port(options.host, child_process_ports)
           options.notify_dispatcher = true
         end
 
@@ -62,7 +62,7 @@ module Debugger
       end
 
 
-      def find_free_port(host)
+      def find_free_port(host, child_process_ports)
         if child_process_ports.nil?
           server = TCPServer.open(host, 0)
           port   = server.addr[1]
