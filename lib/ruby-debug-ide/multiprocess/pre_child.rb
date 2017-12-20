@@ -70,20 +70,22 @@ module Debugger
           port
         else
           ports = Range.new(child_process_ports[0], child_process_ports[1]).to_a
-          begin
-            raise "Could not find open port in range #{child_process_ports[0]} to #{child_process_ports[1]}" if ports.empty?
-
-            port = ports.sample
-            server = TCPServer.open(host, port)
-            server.close
-            port
-          rescue Errno::EADDRINUSE
-            ports.delete(port)
-            retry
+          raise "Could not find open port in range #{child_process_ports[0]} to #{child_process_ports[1]}" if ports.empty?
+          final_port = nil
+          ports.each do |port|
+            begin
+              server = TCPServer.open(host, port)
+              server.close
+              final_port = port
+              break
+            rescue
+              next
+            end
           end
+          final_port
         end
-
       end
     end
+
   end
 end
